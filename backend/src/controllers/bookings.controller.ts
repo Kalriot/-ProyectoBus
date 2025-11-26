@@ -77,3 +77,33 @@ export async function getByCode(req: Request, res: Response) {
         res.status(500).json({ error: 'Error al obtener reserva' });
     }
 }
+
+// GET /api/bookings/user/:userId - Obtener todas las reservas de un usuario
+export async function getUserBookings(req: Request, res: Response) {
+    try {
+        const { userId } = req.params;
+
+        const bookings = await prisma.booking.findMany({
+            where: { userId },
+            include: {
+                package: {
+                    select: {
+                        id: true,
+                        title: true,
+                        destination: true,
+                        duration: true,
+                        price: true,
+                        image: true,
+                        slug: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json(bookings);
+    } catch (error: any) {
+        console.error('Error en getUserBookings:', error);
+        res.status(500).json({ error: 'Error al obtener reservas del usuario' });
+    }
+}

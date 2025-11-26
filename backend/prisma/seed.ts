@@ -2,6 +2,33 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+function hashPassword(password: string): string {
+    return Buffer.from(password).toString('base64');
+}
+
+const USERS = [
+    {
+        email: "admin@turismo.pe",
+        password: "admin123",
+        name: "Administrador",
+    },
+    {
+        email: "juan.perez@gmail.com",
+        password: "password123",
+        name: "Juan Pérez",
+    },
+    {
+        email: "maria.garcia@hotmail.com",
+        password: "password123",
+        name: "María García",
+    },
+    {
+        email: "carlos.lopez@yahoo.com",
+        password: "password123",
+        name: "Carlos López",
+    }
+];
+
 const PACKAGES = [
     {
         slug: "paracas-ballestas",
@@ -132,6 +159,168 @@ const PACKAGES = [
         photos: [
             "https://images.unsplash.com/photo-1531065208531-4036c0dba3f5?w=800&h=600&fit=crop"
         ]
+    },
+    {
+        slug: "iquitos-amazonas-4d3n",
+        title: "Iquitos & Amazonas Salvaje 4D/3N",
+        destination: "Iquitos, Loreto",
+        duration: "4 días",
+        price: 1200.00,
+        currency: "PEN",
+        rating: 4.7,
+        image: "https://images.unsplash.com/photo-1546536662-723048598422?w=800&h=600&fit=crop",
+        featured: false,
+        description: "Adéntrate en la selva amazónica. Navega por el río Amazonas, visita comunidades nativas y observa la fauna exótica en su estado natural.",
+        includes: [
+            "Traslados aeropuerto - albergue - aeropuerto",
+            "3 noches en Lodge en la selva",
+            "Alimentación completa",
+            "Excursiones diurnas y nocturnas",
+            "Guía nativo experto"
+        ],
+        notIncludes: [
+            "Vuelos a Iquitos",
+            "Bebidas en el bar",
+            "Propinas"
+        ],
+        itinerary: [
+            {
+                day: 1,
+                title: "Bienvenida a la Selva",
+                description: "Recepción y navegación por el Amazonas. Llegada al Lodge."
+            },
+            {
+                day: 2,
+                title: "Exploración de Flora y Fauna",
+                description: "Caminata botánica y búsqueda de delfines rosados."
+            },
+            {
+                day: 3,
+                title: "Cultura Nativa",
+                description: "Visita a comunidad Yagua y pesca de pirañas."
+            },
+            {
+                day: 4,
+                title: "Isla de los Monos + Retorno",
+                description: "Visita a la Isla de los Monos y retorno a la ciudad."
+            }
+        ],
+        photos: [
+            "https://images.unsplash.com/photo-1546536662-723048598422?w=800&h=600&fit=crop"
+        ]
+    },
+    {
+        slug: "puno-titicaca-3d2n",
+        title: "Puno & Lago Titicaca 3D/2N",
+        destination: "Puno",
+        duration: "3 días",
+        price: 550.00,
+        currency: "PEN",
+        rating: 4.6,
+        image: "https://images.unsplash.com/photo-1528659578160-f71a9325983c?w=800&h=600&fit=crop",
+        featured: false,
+        description: "Navega por el lago navegable más alto del mundo. Visita las islas flotantes de los Uros y la isla de Taquile.",
+        includes: [
+            "2 noches de hotel en Puno",
+            "Tour a Uros y Taquile (Full Day)",
+            "Traslados internos",
+            "Desayunos",
+            "Guía oficial"
+        ],
+        notIncludes: [
+            "Vuelos a Juliaca",
+            "Cenas"
+        ],
+        itinerary: [
+            {
+                day: 1,
+                title: "Llegada a Puno",
+                description: "Traslado del aeropuerto a Puno. Aclimatación."
+            },
+            {
+                day: 2,
+                title: "Lago Titicaca: Uros y Taquile",
+                description: "Excursión de día completo en lancha rápida."
+            },
+            {
+                day: 3,
+                title: "Sillustani + Salida",
+                description: "Visita a las Chullpas de Sillustani camino al aeropuerto."
+            }
+        ],
+        photos: [
+            "https://images.unsplash.com/photo-1528659578160-f71a9325983c?w=800&h=600&fit=crop"
+        ]
+    },
+    {
+        slug: "huaraz-nevados-3d2n",
+        title: "Huaraz & Nevados 3D/2N",
+        destination: "Huaraz, Ancash",
+        duration: "3 días",
+        price: 450.00,
+        currency: "PEN",
+        rating: 4.8,
+        image: "https://images.unsplash.com/photo-1534234828563-02511c75b222?w=800&h=600&fit=crop",
+        featured: false,
+        description: "Explora la Suiza Peruana. Visita la Laguna 69, el Glaciar Pastoruri y la Laguna de Llanganuco.",
+        includes: [
+            "2 noches de alojamiento",
+            "3 tours diarios (Laguna 69, Pastoruri, Llanganuco)",
+            "Guía de montaña",
+            "Transporte turístico"
+        ],
+        notIncludes: [
+            "Pasajes de bus Lima-Huaraz",
+            "Entradas al Parque Nacional Huascarán",
+            "Alimentación"
+        ],
+        itinerary: [
+            {
+                day: 1,
+                title: "Callejón de Huaylas + Llanganuco",
+                description: "Visita a Campo Santo de Yungay y Laguna Llanganuco."
+            },
+            {
+                day: 2,
+                title: "Glaciar Pastoruri",
+                description: "Ruta del cambio climático y nevado Pastoruri."
+            },
+            {
+                day: 3,
+                title: "Laguna 69 (Trekking)",
+                description: "Caminata exigente hacia la turquesa Laguna 69."
+            }
+        ],
+        photos: [
+            "https://images.unsplash.com/photo-1534234828563-02511c75b222?w=800&h=600&fit=crop"
+        ]
+    }
+];
+
+const FORUM_POSTS = [
+    {
+        title: "¿Cuál es la mejor época para viajar a Cusco?",
+        content: "Estoy planeando mi viaje a Machu Picchu y quisiera saber cuándo hay menos lluvias pero buen clima. ¡Gracias!",
+        category: "Consejos",
+        userIndex: 1 // Juan
+    },
+    {
+        title: "Experiencia inolvidable en Paracas",
+        content: "Acabo de regresar del tour a las Islas Ballestas y fue mágico. Recomiendo llevar cortavientos porque corre mucho aire en el bote.",
+        category: "Reseñas",
+        userIndex: 2 // Maria
+    },
+    {
+        title: "Recomendaciones para el mal de altura",
+        content: "Para los que viajan a la sierra, tomen mate de coca y descansen el primer día. Es clave para disfrutar el resto del viaje.",
+        category: "Salud",
+        userIndex: 0 // Admin
+    },
+    {
+        title: "¿Qué llevar a la selva?",
+        content: "Voy a Iquitos la próxima semana. ¿Qué tipo de ropa y repelente recomiendan?",
+        category: "Equipaje",
+        userIndex: 3 // Carlos
     }
 ];
 
@@ -139,15 +328,29 @@ async function seed() {
     console.log('🌱 Iniciando seed de la base de datos...');
 
     try {
-        // Limpiar datos existentes
+        // Limpiar datos existentes (Orden importante por claves foráneas)
         await prisma.forumComment.deleteMany();
         await prisma.forumPost.deleteMany();
         await prisma.booking.deleteMany();
         await prisma.package.deleteMany();
+        await prisma.user.deleteMany();
 
         console.log('✅ Datos existentes eliminados');
 
-        // Insertar paquetes
+        // 1. Crear Usuarios
+        const createdUsers = [];
+        for (const user of USERS) {
+            const newUser = await prisma.user.create({
+                data: {
+                    ...user,
+                    password: hashPassword(user.password)
+                }
+            });
+            createdUsers.push(newUser);
+            console.log(`👤 Usuario creado: ${user.name}`);
+        }
+
+        // 2. Crear Paquetes
         for (const pkg of PACKAGES) {
             await prisma.package.create({
                 data: {
@@ -158,7 +361,34 @@ async function seed() {
                     photos: JSON.stringify(pkg.photos)
                 }
             });
-            console.log(`✅ Paquete creado: ${pkg.title}`);
+            console.log(`📦 Paquete creado: ${pkg.title}`);
+        }
+
+        // 3. Crear Posts del Foro
+        for (const post of FORUM_POSTS) {
+            const author = createdUsers[post.userIndex];
+            const newPost = await prisma.forumPost.create({
+                data: {
+                    title: post.title,
+                    content: post.content,
+                    // category: post.category, // Removed as it's not in schema
+                    userId: author.id,
+                    // authorName: author.name // Removed as it's not in schema
+                }
+            });
+            console.log(`💬 Post creado: ${post.title}`);
+
+            // Crear un comentario dummy para algunos posts
+            if (post.userIndex !== 0) { // Si no es admin, el admin responde
+                await prisma.forumComment.create({
+                    data: {
+                        content: "¡Gracias por compartir! Excelente aporte.",
+                        postId: newPost.id,
+                        userId: createdUsers[0].id, // Admin
+                        // authorName: createdUsers[0].name // Removed as it's not in schema
+                    }
+                });
+            }
         }
 
         console.log('🎉 Seed completado exitosamente!');

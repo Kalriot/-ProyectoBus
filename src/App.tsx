@@ -10,6 +10,7 @@ import PackageDetail from "./index/PackageDetail";
 import Forum from "./index/Forum";
 import About from "./index/About";
 import Contact from "./index/Contact";
+import Profile from "./index/Profile";
 import NotFound from "./index/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/forum" element={<Forum />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

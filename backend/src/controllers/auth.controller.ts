@@ -93,6 +93,7 @@ export async function getMe(req: Request, res: Response) {
                 id: true,
                 email: true,
                 name: true,
+                profilePicture: true,
                 createdAt: true
             }
         });
@@ -105,5 +106,74 @@ export async function getMe(req: Request, res: Response) {
     } catch (error: any) {
         console.error('Error en getMe:', error);
         res.status(500).json({ error: 'Error al obtener usuario' });
+    }
+}
+
+// PUT /api/auth/profile - Actualizar perfil de usuario
+export async function updateProfile(req: Request, res: Response) {
+    try {
+        const { userId, name, profilePicture } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId requerido' });
+        }
+
+        // Preparar datos a actualizar
+        const updateData: any = {};
+        if (name !== undefined) updateData.name = name;
+        if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                profilePicture: true,
+                createdAt: true
+            }
+        });
+
+        res.json({ user });
+    } catch (error: any) {
+        console.error('Error en updateProfile:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+}
+
+// POST /api/auth/upload-profile-picture - Subir foto de perfil
+export async function uploadProfilePicture(req: Request, res: Response) {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId requerido' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'No se subió ninguna imagen' });
+        }
+
+        // Construir URL de la imagen
+        const imageUrl = `/uploads/profiles/${req.file.filename}`;
+
+        // Actualizar usuario con la nueva foto
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: { profilePicture: imageUrl },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                profilePicture: true,
+                createdAt: true
+            }
+        });
+
+        res.json({ user, imageUrl });
+    } catch (error: any) {
+        console.error('Error en uploadProfilePicture:', error);
+        res.status(500).json({ error: 'Error al subir imagen' });
     }
 }

@@ -21,6 +21,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Servir archivos estáticos (imágenes subidas)
+app.use('/uploads', express.static('uploads'));
+
 // Rate limiting general
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
