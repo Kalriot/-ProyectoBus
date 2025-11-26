@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PackageCard } from "@/components/PackageCard";
@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { mockPackages } from "@/data/packages";
-import { Filter, SlidersHorizontal, X } from "lucide-react";
+import { packagesService, type Package } from "@/services/packages.service";
+import { Filter, SlidersHorizontal, X, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const Catalog = () => {
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     destination: "",
     minPrice: 0,
@@ -22,8 +24,22 @@ const Catalog = () => {
 
   const [showFilters, setShowFilters] = useState(false);
 
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const data = await packagesService.getAll();
+        setPackages(data);
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPackages();
+  }, []);
+
   // Filter and sort packages
-  let filteredPackages = mockPackages.filter(pkg => {
+  let filteredPackages = packages.filter(pkg => {
     if (filters.destination && !pkg.destination.toLowerCase().includes(filters.destination.toLowerCase())) {
       return false;
     }
@@ -72,7 +88,7 @@ const Catalog = () => {
           min={0}
           max={1000}
           step={50}
-          onValueChange={(values) => 
+          onValueChange={(values) =>
             setFilters({ ...filters, minPrice: values[0], maxPrice: values[1] })
           }
           className="mb-2"
@@ -131,7 +147,7 @@ const Catalog = () => {
             Paquetes Turísticos
           </h1>
           <p className="text-lg text-muted-foreground">
-            Encuentra tu próxima aventura entre {mockPackages.length} destinos increíbles
+            Encuentra tu próxima aventura entre {packages.length} destinos increíbles
           </p>
         </div>
       </section>
@@ -175,7 +191,12 @@ const Catalog = () => {
             </div>
 
             {/* Results */}
-            {filteredPackages.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-16">
+                <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary mb-4" />
+                <p className="text-muted-foreground">Cargando paquetes...</p>
+              </div>
+            ) : filteredPackages.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="text-2xl font-semibold mb-2">No encontramos resultados</h3>

@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { X, Send } from "lucide-react";
+import { X, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { geminiService } from "@/services/gemini.service";
+import { FormatText } from "./FormatText";
 
 interface Message {
   id: number;
@@ -16,40 +18,53 @@ export const Chatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
+      text: "¡Hola! 👋 Soy tu asistente turístico con IA. Puedo ayudarte con itinerarios, dudas sobre destinos o recomendaciones. ¿Qué te gustaría saber?",
       sender: "bot",
       timestamp: new Date(),
     },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
-    const newMessage: Message = {
+    const userMessage: Message = {
       id: messages.length + 1,
       text: inputValue,
       sender: "user",
       timestamp: new Date(),
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages([...messages, userMessage]);
     setInputValue("");
+    setIsLoading(true);
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponse: Message = {
+    try {
+      const response = await geminiService.chat(inputValue);
+
+      const botMessage: Message = {
         id: messages.length + 2,
-        text: "Gracias por tu mensaje. Un asesor se comunicará contigo pronto. 😊",
+        text: response.response,
         sender: "bot",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, botResponse]);
-    }, 1000);
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: messages.length + 2,
+        text: "Lo siento, hubo un error. Por favor intenta de nuevo.",
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !isLoading) {
       handleSend();
     }
   };
@@ -64,8 +79,11 @@ export const Chatbot = () => {
             <div className="flex items-center gap-3">
               <span className="text-3xl">🤖</span>
               <div>
-                <h3 className="font-semibold text-white">Asistente Virtual</h3>
-                <p className="text-xs text-white/80">En línea</p>
+                <h3 className="font-semibold text-white">Asistente IA</h3>
+                <p className="text-xs text-white/80 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  En línea
+                </p>
               </div>
             </div>
             <Button
@@ -84,24 +102,25 @@ export const Chatbot = () => {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${
-                    message.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                      message.sender === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    }`}
+                    className={`max-w-[85%] rounded-2xl px-4 py-2 ${message.sender === "user"
+                        ? "bg-primary text-primary-foreground rounded-br-none"
+                        : "bg-muted text-foreground rounded-bl-none"
+                      }`}
                   >
-                    <p className="text-sm">{message.text}</p>
+                    {message.sender === "bot" ? (
+                      <FormatText text={message.text} />
+                    ) : (
+                      <p className="text-sm">{message.text}</p>
+                    )}
                     <p
-                      className={`text-xs mt-1 ${
-                        message.sender === "user"
+                      className={`text-xs mt-1 ${message.sender === "user"
                           ? "text-primary-foreground/70"
                           : "text-muted-foreground"
-                      }`}
+                        }`}
                     >
                       {message.timestamp.toLocaleTimeString("es-PE", {
                         hour: "2-digit",
@@ -111,6 +130,15 @@ export const Chatbot = () => {
                   </div>
                 </div>
               ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted rounded-2xl rounded-bl-none px-4 py-2 flex gap-1">
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75"></span>
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150"></span>
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
 
@@ -121,17 +149,26 @@ export const Chatbot = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Escribe tu mensaje..."
+                placeholder="Pregunta sobre Perú..."
                 className="flex-1"
+                disabled={isLoading}
               />
               <Button
                 onClick={handleSend}
                 size="icon"
                 className="bg-hero-gradient hover:opacity-90"
+                disabled={!inputValue.trim() || isLoading}
               >
-                <Send className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
+            <p className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+              Powered by Gemini AI
+            </p>
           </div>
         </div>
       )}

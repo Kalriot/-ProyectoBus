@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,14 @@ import { CalendarIcon, CreditCard, Check, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { authService } from "@/services/auth.service";
+import { bookingsService } from "@/services/bookings.service";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  packageId: string;
   packageTitle: string;
   price: number;
   currency: string;
@@ -22,6 +26,7 @@ interface BookingModalProps {
 export const BookingModal = ({
   isOpen,
   onClose,
+  packageId,
   packageTitle,
   price,
   currency,
@@ -29,6 +34,7 @@ export const BookingModal = ({
 }: BookingModalProps) => {
   const [step, setStep] = useState<"form" | "processing" | "confirmed">("form");
   const [date, setDate] = useState<Date>();
+  const [bookingCode, setBookingCode] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -37,17 +43,53 @@ export const BookingModal = ({
     cardExpiry: "",
     cardCvv: "",
   });
+  const { toast } = useToast();
+  const user = authService.getCurrentUser();
+
+  useEffect(() => {
+    if (isOpen && user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name,
+        email: user.email
+      }));
+    }
+  }, [isOpen, user]);
 
   const total = price * passengers;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!date) return;
+
     setStep("processing");
 
-    // Simular procesamiento de pago
-    setTimeout(() => {
+    try {
+      // 1. Simular procesamiento de pago (2 segundos)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // 2. Crear reserva en backend
+      const booking = await bookingsService.create({
+        packageId,
+        travelDate: date.toISOString(),
+        passengers,
+        passengerName: formData.name,
+        passengerEmail: formData.email,
+        passengerPhone: formData.phone,
+        userId: user?.id
+      });
+
+      setBookingCode(booking.bookingCode);
       setStep("confirmed");
-    }, 2500);
+    } catch (error: any) {
+      console.error("Error creating booking:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "No se pudo procesar la reserva",
+        variant: "destructive",
+      });
+      setStep("form");
+    }
   };
 
   const handleClose = () => {
@@ -120,7 +162,7 @@ export const BookingModal = ({
               {/* Datos Personales */}
               <div className="space-y-4">
                 <h3 className="font-semibold">Datos del Pasajero</h3>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre completo *</Label>
                   <Input
@@ -230,7 +272,7 @@ export const BookingModal = ({
             <div className="mx-auto w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center">
               <Check className="h-8 w-8 text-secondary" />
             </div>
-            
+
             <div className="space-y-2">
               <h3 className="text-2xl font-bold">¡Reserva Confirmada! 🎉</h3>
               <p className="text-muted-foreground">
@@ -241,7 +283,7 @@ export const BookingModal = ({
             <div className="bg-muted p-4 rounded-lg text-left space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Código de reserva:</span>
-                <span className="font-mono font-semibold">RES-{Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+                <span className="font-mono font-semibold">{bookingCode}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Paquete:</span>

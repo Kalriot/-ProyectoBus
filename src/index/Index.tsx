@@ -4,15 +4,37 @@ import { Footer } from "@/components/Footer";
 import { SearchBar } from "@/components/SearchBar";
 import { PackageCard } from "@/components/PackageCard";
 import { Chatbot } from "@/components/Chatbot";
+import { PlannerModal } from "@/components/PlannerModal";
 import { Button } from "@/components/ui/button";
-import { mockPackages } from "@/data/packages";
-import { ArrowRight, Award, Globe, Shield, Users } from "lucide-react";
+import { ArrowRight, Award, Globe, Shield, Users, Wand2 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
+import { useState, useEffect } from "react";
+import { packagesService, type Package } from "@/services/packages.service";
 
 const Index = () => {
   const { t } = useLocale();
-  const featuredPackages = mockPackages.filter(p => p.featured);
-  const allPackages = mockPackages.slice(0, 6);
+  const [featuredPackages, setFeaturedPackages] = useState<Package[]>([]);
+  const [allPackages, setAllPackages] = useState<Package[]>([]);
+  const [isPlannerOpen, setIsPlannerOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const [featured, all] = await Promise.all([
+          packagesService.getAll({ featured: true }),
+          packagesService.getAll()
+        ]);
+        setFeaturedPackages(featured);
+        setAllPackages(all.slice(0, 6));
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPackages();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,6 +56,18 @@ const Index = () => {
           </div>
 
           <SearchBar />
+
+          {/* Planner Button */}
+          <div className="text-center mt-8">
+            <Button
+              onClick={() => setIsPlannerOpen(true)}
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+            >
+              <Wand2 className="mr-2" />
+              Planificador Mágico con IA
+            </Button>
+          </div>
         </div>
 
         {/* Decorative elements */}
@@ -41,7 +75,7 @@ const Index = () => {
         <div className="absolute bottom-10 right-10 text-7xl opacity-10 animate-pulse delay-300">🏔️</div>
         <div className="absolute top-1/2 left-1/4 text-5xl opacity-5 animate-pulse delay-500">🌴</div>
         <div className="absolute top-1/3 right-1/4 text-5xl opacity-5 animate-pulse delay-700">🏖️</div>
-        
+
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/20 pointer-events-none"></div>
       </section>
@@ -165,7 +199,7 @@ const Index = () => {
             </Button>
           </div>
         </div>
-        
+
         {/* Decorative elements */}
         <div className="absolute top-10 left-10 text-8xl opacity-10 animate-pulse">🎒</div>
         <div className="absolute bottom-10 right-10 text-8xl opacity-10 animate-pulse delay-500">🗺️</div>
@@ -175,6 +209,9 @@ const Index = () => {
       <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
         <Chatbot />
       </div>
+
+      {/* Planner Modal */}
+      <PlannerModal isOpen={isPlannerOpen} onClose={() => setIsPlannerOpen(false)} />
 
       <Footer />
     </div>

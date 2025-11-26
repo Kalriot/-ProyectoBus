@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Usuarios
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String    // Hash de la contraseña
+  name          String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+  forumPosts    ForumPost[]
+  forumComments ForumComment[]
+}
+
+// Modelo de Paquetes Turísticos
+model Package {
+  id            String    @id @default(uuid())
+  slug          String    @unique
+  title         String
+  destination   String
+  duration      String
+  price         Float
+  currency      String    @default("PEN")
+  rating        Float     @default(0)
+  image         String
+  featured      Boolean   @default(false)
+  description   String    @db.Text
+  includes      String    @db.Text // JSON string
+  notIncludes   String    @db.Text // JSON string
+  itinerary     String    @db.Text // JSON string
+  photos        String    @db.Text // JSON string (array de URLs)
+  streetViewUrl String?
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Modelo de Reservas
+model Booking {
+  id              String    @id @default(uuid())
+  bookingCode     String    @unique
+  userId          String?   // Opcional para permitir reservas sin login
+  packageId       String
+  travelDate      DateTime
+  passengers      Int
+  totalPrice      Float
+  status          String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  passengerName   String
+  passengerEmail  String
+  passengerPhone  String
+  user            User?     @relation(fields: [userId], references: [id])
+  package         Package   @relation(fields: [packageId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Modelo de Posts del Foro
+model ForumPost {
+  id            String    @id @default(uuid())
+  title         String
+  content       String    @db.Text
+  userId        String
+  author        User      @relation(fields: [userId], references: [id])
+  comments      ForumComment[]
+  likes         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Modelo de Comentarios del Foro
+model ForumComment {
+  id            String    @id @default(uuid())
+  content       String
+  userId        String
+  author        User      @relation(fields: [userId], references: [id])
+  postId        String
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+}

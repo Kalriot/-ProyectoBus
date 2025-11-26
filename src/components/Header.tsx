@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Globe, Menu, User, X, MessageCircle } from "lucide-react";
+import { Globe, Menu, User, X, MessageCircle, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +9,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLocale } from "@/contexts/LocaleContext";
+import { LoginModal } from "@/components/LoginModal";
+import { authService, type User as AuthUser } from "@/services/auth.service";
 
 export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const { locale, currency, setLocale, setCurrency, t } = useLocale();
+
+  useEffect(() => {
+    setUser(authService.getCurrentUser());
+  }, []);
 
   const handleLocaleChange = (newLocale: "es" | "en" | "pt", newCurrency: "PEN" | "USD") => {
     setLocale(newLocale);
     setCurrency(newCurrency);
+  };
+
+  const handleLoginSuccess = () => {
+    setUser(authService.getCurrentUser());
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
   };
 
   return (
@@ -53,7 +70,7 @@ export const Header = () => {
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full animate-pulse"></span>
             </Link>
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1">
@@ -74,12 +91,27 @@ export const Header = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/account">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  {user.name}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background z-50">
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Cerrar Sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setIsLoginOpen(true)}>
               <User className="h-4 w-4" />
               {t("nav.login")}
-            </Link>
-          </Button>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -110,7 +142,7 @@ export const Header = () => {
               Foro
             </Link>
             <div className="flex gap-2 pt-4 border-t">
-              
+
               <Button variant="outline" size="sm" className="flex-1" asChild>
                 <Link to="/account">
                   <User className="h-4 w-4" />
@@ -139,6 +171,13 @@ export const Header = () => {
           </nav>
         </div>
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSuccess={handleLoginSuccess}
+      />
     </header>
   );
 };

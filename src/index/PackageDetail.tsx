@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -7,33 +7,66 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookingModal } from "@/components/BookingModal";
-import { mockPackages } from "@/data/packages";
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Star, 
-  Users, 
-  Check, 
-  X, 
-  ChevronLeft, 
+import { packagesService, type Package } from "@/services/packages.service";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Star,
+  Users,
+  Check,
+  X,
+  ChevronLeft,
   ChevronRight,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from "lucide-react";
 
 const PackageDetail = () => {
   const { slug } = useParams();
-  const packageData = mockPackages.find(p => p.slug === slug);
+  const [packageData, setPackageData] = useState<Package | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [passengers, setPassengers] = useState(2);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchPackage = async () => {
+      if (!slug) return;
+      try {
+        const data = await packagesService.getBySlug(slug);
+        setPackageData(data);
+      } catch (error) {
+        console.error('Error fetching package:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPackage();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto max-w-4xl px-4 py-32 text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary mb-4" />
+          <p className="text-muted-foreground">Cargando detalles del paquete...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!packageData) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto max-w-4xl px-4 py-16 text-center">
+        <div className="container mx-auto max-w-4xl px-4 py-32 text-center">
           <h1 className="text-3xl font-bold mb-4">Paquete no encontrado</h1>
+          <p className="text-muted-foreground mb-8">
+            Lo sentimos, no pudimos encontrar el paquete que buscas.
+          </p>
           <Button asChild>
             <Link to="/catalog">Ver Catálogo</Link>
           </Button>
@@ -67,7 +100,7 @@ const PackageDetail = () => {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            
+
             {/* Navigation */}
             {packageData.photos.length > 1 && (
               <>
@@ -93,9 +126,8 @@ const PackageDetail = () => {
                   {packageData.photos.map((_, index) => (
                     <button
                       key={index}
-                      className={`h-2 rounded-full transition-all ${
-                        index === currentImageIndex ? 'w-8 bg-white' : 'w-2 bg-white/50'
-                      }`}
+                      className={`h-2 rounded-full transition-all ${index === currentImageIndex ? 'w-8 bg-white' : 'w-2 bg-white/50'
+                        }`}
                       onClick={() => setCurrentImageIndex(index)}
                     />
                   ))}
@@ -314,9 +346,9 @@ const PackageDetail = () => {
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full" 
-                  size="lg" 
+                <Button
+                  className="w-full"
+                  size="lg"
                   variant="hero"
                   onClick={() => setIsBookingOpen(true)}
                 >
@@ -337,6 +369,7 @@ const PackageDetail = () => {
       <BookingModal
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
+        packageId={packageData.id}
         packageTitle={packageData.title}
         price={packageData.price}
         currency={packageData.currency}
