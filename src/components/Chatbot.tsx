@@ -50,10 +50,13 @@ export const Chatbot = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
+    } catch (error: any) {
+      // Extraer el mensaje de error del backend
+      const errorText = error.response?.data?.error || error.message || "Lo siento, hubo un error. Por favor intenta de nuevo.";
+
       const errorMessage: Message = {
         id: messages.length + 2,
-        text: "Lo siento, hubo un error. Por favor intenta de nuevo.",
+        text: errorText,
         sender: "bot",
         timestamp: new Date(),
       };
@@ -107,8 +110,8 @@ export const Chatbot = () => {
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-2 ${message.sender === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-none"
-                        : "bg-muted text-foreground rounded-bl-none"
+                      ? "bg-primary text-primary-foreground rounded-br-none"
+                      : "bg-muted text-foreground rounded-bl-none"
                       }`}
                   >
                     {message.sender === "bot" ? (
@@ -118,8 +121,8 @@ export const Chatbot = () => {
                     )}
                     <p
                       className={`text-xs mt-1 ${message.sender === "user"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
+                        ? "text-primary-foreground/70"
+                        : "text-muted-foreground"
                         }`}
                     >
                       {message.timestamp.toLocaleTimeString("es-PE", {

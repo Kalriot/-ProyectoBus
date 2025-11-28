@@ -1,14 +1,26 @@
+// geminiController.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Request, Response } from 'express';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Validar API key al arrancar
+if (!process.env.GEMINI_API_KEY) {
+    throw new Error('Falta la variable de entorno GEMINI_API_KEY');
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-// Función auxiliar para retry con backoff exponencial
-async function callGeminiWithRetry(prompt: string, systemInstruction: string, maxRetries = 3) {
-    const delays = [1000, 2000, 4000];
+/**
+ * Llamada a Gemini con reintentos y backoff exponencial
+ */
+async function callGeminiWithRetry(
+    prompt: string,
+    systemInstruction: string,
+    maxRetries = 3
+): Promise<string> {
+    const delays = [1000, 2000, 4000]; // ms
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             const chat = model.startChat({
                 history: [],
@@ -18,22 +30,63 @@ async function callGeminiWithRetry(prompt: string, systemInstruction: string, ma
                 },
             });
 
-            const result = await chat.sendMessage(`${systemInstruction}\n\n${prompt}`);
+            // 👇 AQUÍ volvemos a concatenar el systemInstruction
+            const result = await chat.sendMessage(
+                `${systemInstruction}\n\n${prompt}`
+            );
             const response = await result.response;
             return response.text();
-        } catch (error: any) {
-            console.error(`Intento ${attempt + 1} fallido:`, error.message);
+        } catch (err) {
+            const error: any = err;
+            console.error(`Intento ${attempt + 1} fallido:`, error);
 
-            if (attempt === maxRetries) {
-                throw new Error('No se pudo conectar con el asistente. Por favor intenta más tarde.');
+            const errorMessage: string = error?.message || '';
+            const statusCode: number = error?.status || error?.code || 0;
+            const isLastAttempt = attempt === maxRetries - 1;
+
+            if (isLastAttempt) {
+                if (
+                    statusCode === 429 ||
+                    errorMessage.includes('429') ||
+                    errorMessage.includes('Too Many Requests')
+                ) {
+                    throw new Error(
+                        '⏳ Estamos recibiendo muchas consultas. Por favor, espera unos segundos e intenta nuevamente.'
+                    );
+                } else if (
+                    statusCode === 403 ||
+                    errorMessage.includes('403') ||
+                    errorMessage.includes('PERMISSION_DENIED')
+                ) {
+                    throw new Error(
+                        '🔒 No tenemos acceso a este servicio en este momento. Por favor, contacta al administrador.'
+                    );
+                } else if (
+                    statusCode === 404 ||
+                    errorMessage.includes('404') ||
+                    errorMessage.includes('NOT_FOUND')
+                ) {
+                    throw new Error(
+                        '❌ El servicio de IA no está disponible. Por favor, contacta al administrador.'
+                    );
+                } else {
+                    throw new Error(
+                        '😔 Lo siento, hubo un error. Por favor intenta de nuevo en unos momentos.'
+                    );
+                }
             }
 
-            await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+            const delay = delays[attempt] ?? delays[delays.length - 1];
+            await new Promise((resolve) => setTimeout(resolve, delay));
         }
     }
+
+    throw new Error('Error desconocido al llamar a Gemini.');
 }
 
-// Chatbot endpoint
+/**
+ * Endpoint de chatbot general
+ */
 export async function chatbot(req: Request, res: Response) {
     try {
         const { message } = req.body;
@@ -48,22 +101,35 @@ Responde preguntas sobre destinos peruanos, clima, comida y actividades turísti
 Si piden un itinerario o lista, usa bullet points simples. Ve directo al grano sin introducciones largas.
 Usa emojis ocasionalmente para ser amigable.`;
 
-        const response = await callGeminiWithRetry(message, systemPrompt);
+        const responseText = await callGeminiWithRetry(
+            message,
+            systemPrompt
+        );
 
-        res.json({ response });
+        return res.json({ response: responseText });
     } catch (error: any) {
         console.error('Error en chatbot:', error);
-        res.status(500).json({ error: error.message });
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'Error interno en el servidor.';
+        return res.status(500).json({ error: message });
     }
 }
 
-// Planificador de itinerarios
+/**
+ * Endpoint para planificador de itinerarios
+ */
 export async function generateItinerary(req: Request, res: Response) {
     try {
         const { destination, days, style } = req.body;
 
-        if (!destination || !days || !style) {
-            return res.status(400).json({ error: 'Faltan parámetros: destination, days, style' });
+        const daysNumber = Number(days);
+
+        if (!destination || !daysNumber || !style) {
+            return res
+                .status(400)
+                .json({ error: 'Faltan parámetros: destination, days, style' });
         }
 
         const styleDescriptions: Record<string, string> = {
@@ -71,10 +137,11 @@ export async function generateItinerary(req: Request, res: Response) {
             relax: 'relax y confort',
             cultural: 'cultural e histórico',
             gastronomico: 'gastronómico',
-            familiar: 'familiar con niños'
+            familiar: 'familiar con niños',
         };
 
-        const prompt = `Crea un itinerario ESQUEMÁTICO y BREVE de ${days} días para ${destination} con enfoque ${styleDescriptions[style] || style}. 
+        const prompt = `Crea un itinerario ESQUEMÁTICO y BREVE de ${daysNumber} días para ${destination} con enfoque ${styleDescriptions[style] || style
+            }. 
 
 NO escribas párrafos largos. Usa solo listas con viñetas cortas.
 
@@ -90,11 +157,18 @@ Sé directo y ve al grano. Máximo 40 palabras por día.`;
 Tu objetivo es dar información útil sin rodeos. Evita el lenguaje florido. 
 Máximo 50 palabras por día del itinerario. Usa formato markdown simple con negritas (**texto**).`;
 
-        const response = await callGeminiWithRetry(prompt, systemPrompt);
+        const itineraryText = await callGeminiWithRetry(
+            prompt,
+            systemPrompt
+        );
 
-        res.json({ itinerary: response });
+        return res.json({ itinerary: itineraryText });
     } catch (error: any) {
         console.error('Error en generateItinerary:', error);
-        res.status(500).json({ error: error.message });
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'Error interno en el servidor.';
+        return res.status(500).json({ error: message });
     }
 }

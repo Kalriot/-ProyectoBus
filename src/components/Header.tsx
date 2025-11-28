@@ -59,6 +59,9 @@ export const Header = () => {
           <Link to="/contact" className="text-sm font-medium transition-colors hover:text-primary">
             {t("nav.contact")}
           </Link>
+          <Link to="/hola-mundo" className="text-sm font-medium transition-colors hover:text-primary">
+            Hola Mundo
+          </Link>
         </nav>
 
         {/* Desktop Actions */}
@@ -154,6 +157,9 @@ export const Header = () => {
             </Link>
             <Link to="/forum" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
               Foro
+            </Link>
+            <Link to="/hola-mundo" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+              Hola Mundo
             </Link>
             <div className="flex gap-2 pt-4 border-t">
 
